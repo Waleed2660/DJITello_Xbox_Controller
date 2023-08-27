@@ -1,0 +1,9 @@
+# Ignore virtual environment
+/venv/
+
+# Ignore JetBrains IDE settings
+.idea/
+
+# file for local testing
+test_controller.py
+/main/controller.py
