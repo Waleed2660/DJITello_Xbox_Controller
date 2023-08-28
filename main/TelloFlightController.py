@@ -2,39 +2,63 @@ import pygame
 from time import sleep
 from djitellopy import tello
 from pygame.constants import JOYBUTTONDOWN, JOYHATMOTION
-from main.XboxController import ControllerButtons, suppress_stdout
+from XboxController import ControllerButtons, suppress_stdout
+import cv2
 
 
-pygame.init()
+# For Testing
+allowBroadcasting = False  # Set to False for testing
+
+
 # initialize
+pygame.init()
 drone = tello.Tello()
 print("Connecting to Tello...")
 drone.connect()
+drone.streamon()
 
 print("Battery Level: " + str(drone.get_battery()))
 
 joysticks = []
 for i in range(0, pygame.joystick.get_count()):
     joysticks.append(pygame.joystick.Joystick(i))
+    print("Controller => ", pygame.joystick.Joystick(i).get_name())
     joysticks[-1].init()
-
-# Print out the name of the controller
-print("Controller => ", pygame.joystick.Joystick(0).get_name())
 
 
 def reset_motion():
     drone.send_rc_control(0, 0, 0, 0)
 
 
+def broadcast():
+    if allowBroadcasting:
+        # print("Broadcasting ........")
+        raw_frame = drone.get_frame_read().frame
+
+        # Display the frame
+        frame = cv2.resize(raw_frame, (360,250))
+        cv2.imshow('Tello Video Stream', frame)
+
+        # Exit on 'q' press
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            return 0
+
+    return 1
+
 # Main Loop
 while True or KeyboardInterrupt:
+
+    if broadcast() == 0:
+        cv2.destroyAllWindows()
+        break
 
     # Check for joystick events
     for event in pygame.event.get():
 
-        # print("Event -------------------> ", event.type)
-
         if event.type == JOYBUTTONDOWN:
+            
+            print("++++++++++++++++++ Button --> ", event.button)
+            
             if event.button == ControllerButtons.BUTTON.Y.value:
                 print("Take Off")
                 drone.takeoff()
@@ -82,6 +106,7 @@ while True or KeyboardInterrupt:
 
         # Controls for Left Joystick
         if event.type == pygame.JOYAXISMOTION:
+            
             if event.axis < 2:  # Left stick
                 if event.axis == 0:  # left/right
                     if event.value < -0.999:
@@ -108,12 +133,16 @@ while True or KeyboardInterrupt:
                         drone.send_rc_control(0, -50, 0, 0)
                         sleep(0.01)
                         # reset_motion()
+            
 
-            if event.axis in (4, 5):
+            elif event.axis in (4, 5):
                 if event.axis == ControllerButtons.TRIGGERS.RIGHT.value:
-                    print("going DOWN")
-                    drone.send_rc_control(0, 0, 60, 0)
-                if event.axis == ControllerButtons.TRIGGERS.LEFT.value:
                     print("going UP")
+                    drone.send_rc_control(0, 0, 60, 0)
+                    sleep(0.5)
+                if event.axis == ControllerButtons.TRIGGERS.LEFT.value:
+                    print("going DOWN")
                     drone.send_rc_control(0, 0, -60, 0)
+                    sleep(0.5)
+        
 

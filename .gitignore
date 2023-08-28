@@ -7,3 +7,6 @@
 # file for local testing
 test_controller.py
 /main/controller.py
+
+# Ignore caches
+/main/XboxController/__pycache__/
